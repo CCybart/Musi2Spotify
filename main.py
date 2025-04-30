@@ -266,9 +266,14 @@ def get_live_info():
     return {"name":playlist_name,"songs":total_songs,"matched":matched_songs,"scraped":scraped_songs,"loading":currently_loading}
 
 @app.route("/get_matches",methods=["GET"])
-def get_new_matches():
+def get_matches():
     global matches
     return matches
+
+@app.route("/get_not_found",methods=["GET"])
+def get_not_found():
+    global not_found
+    return not_found
 
 if __name__=="__main__":
     app.run(debug=True, host="0.0.0.0")

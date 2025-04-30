@@ -1,6 +1,6 @@
 import re
 
-def truncate(string,length=18):
+def truncate(string,length=17):
     if len(string)>length:
         return string[:length]+"..."
     return string

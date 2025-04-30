@@ -4,8 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Musi2Spotify</title>
+	<style>
+		.flex-container {
+			display: flex;
+			flex-direction: row;
+			flex-wrap: nowrap;
+		}
+	</style>
     <script>
-		function fetchNewMatches() {
+		function fetchFound() {
             fetch('/get_matches').then(response => response.json()).then(data => {
 				let tableBody = document.getElementById('foundTableBody');
 				tableBody.innerHTML = ''; // Clear existing rows
@@ -32,7 +39,29 @@
 
 					tableBody.appendChild(row);
 				});
-			}).catch(error => console.error('Error fetching file list:', error));
+			}).catch(error => console.error('Error fetching found list:', error));
+        }
+		
+		function fetchNotFound() {
+			fetch('/get_not_found').then(response => response.json()).then(data => {
+				let tableBody = document.getElementById('notFoundTableBody');
+				tableBody.innerHTML = ''; // Clear existing rows
+
+				data.forEach(song => {
+					let row = document.createElement('tr');
+
+					let Cell = document.createElement('td');
+					let Link = document.createElement("a");
+					Link.setAttribute("href", song["url"])
+					let LinkText = document.createTextNode(song["title"]+" by "+song["artist"]);
+					Link.appendChild(LinkText);
+					Cell.appendChild(Link);
+
+					row.appendChild(Cell);
+
+					tableBody.appendChild(row);
+				});
+			}).catch(error => console.error('Error fetching not found list:', error));
         }
 	
         function fetchLiveData() {
@@ -48,7 +77,8 @@
 					}
 					if (data["songs"]!=0 && data["matched"]==data["songs"]){
 						clearInterval(intervalId);
-						fetchNewMatches()
+						fetchFound()
+						fetchNotFound()
 						clearInterval(intervalId2);
 					}
 					else if (!data["loading"]){
@@ -61,7 +91,8 @@
 			fetchLiveData()
 		}, 500);
 		var intervalId2 = window.setInterval(function(){
-			fetchNewMatches()
+			fetchFound()
+			fetchNotFound()
 		}, 1000);
     </script>
 </head>
@@ -72,18 +103,35 @@
     <p id="playlistName">Loading playlist: </p>
 	<p id="scraped"></p>
 	<p id="matched"></p>
-
-	<h2>Songs with matches on spotify:</h2>
-	<div style="overflow-y:scroll;height: 160px;">
-    <table border="1"><thead>
-     <tr>
-      <td>Youtube Video</td>
-      <td>Spotify Track</td>
-     </tr></thead>
-	 <tbody id="foundTableBody">
-	 </tbody>
-    </table>
-	</div>
+	
+	<div class="flex-container">
+	 <div>
+	  <h2>Songs not found on Spotify:  </h2>
+	  <div style="overflow-y:auto;max-height: 160px;">
+       <table border="1"><thead>
+        <tr>
+         <td>Youtube Video</td>
+        </tr></thead>
+	    <tbody id="notFoundTableBody">
+	    </tbody>
+       </table>
+	  </div>
+	 </div>
+ 
+ 	 <div>
+ 	  <h2>Songs with matches on Spotify:</h2>
+ 	  <div style="overflow-y:auto;max-height: 160px;">
+       <table border="1"><thead>
+        <tr>
+         <td>Youtube Video</td>
+         <td>Spotify Track</td>
+        </tr></thead>
+ 	    <tbody id="foundTableBody">
+ 	    </tbody>
+       </table>
+ 	  </div>
+	 </div>
+ 	</div>
 
 </body>
 </html>
