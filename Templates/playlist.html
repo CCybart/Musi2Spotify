@@ -11,77 +11,66 @@
 			flex-wrap: nowrap;
 		}
 	</style>
-    <script>
-		function fetchFound() {
-            fetch('/get_matches').then(response => response.json()).then(data => {
-				let tableBody = document.getElementById('foundTableBody');
-				tableBody.innerHTML = ''; // Clear existing rows
-
-				data.forEach(match => {
-					let row = document.createElement('tr');
-
-					let ytCell = document.createElement('td');
-					let ytLink = document.createElement("a");
-					ytLink.setAttribute("href", match["yt-url"])
-					let ytLinkText = document.createTextNode(match["yt-title"]+" by "+match["yt-author"]);
-					ytLink.appendChild(ytLinkText);
-					ytCell.appendChild(ytLink);
-	
-					let spCell = document.createElement('td');
-					let spLink = document.createElement("a");
-					spLink.setAttribute("href", "http://open.spotify.com/track/"+match["sp-id"])
-					let spLinkText = document.createTextNode(match["sp-title"]+" by "+match["sp-artist"]);
-					spLink.appendChild(spLinkText);
-					spCell.appendChild(spLink);
-
-					row.appendChild(ytCell);
-					row.appendChild(spCell);
-
-					tableBody.appendChild(row);
-				});
-			}).catch(error => console.error('Error fetching found list:', error));
-        }
-		
-		function fetchNotFound() {
-			fetch('/get_not_found').then(response => response.json()).then(data => {
-				let tableBody = document.getElementById('notFoundTableBody');
-				tableBody.innerHTML = ''; // Clear existing rows
-
-				data.forEach(song => {
-					let row = document.createElement('tr');
-
-					let Cell = document.createElement('td');
-					let Link = document.createElement("a");
-					Link.setAttribute("href", song["url"])
-					let LinkText = document.createTextNode(song["title"]+" by "+song["artist"]);
-					Link.appendChild(LinkText);
-					Cell.appendChild(Link);
-
-					row.appendChild(Cell);
-
-					tableBody.appendChild(row);
-				});
-			}).catch(error => console.error('Error fetching not found list:', error));
-        }
-	
+    <script>	
         function fetchLiveData() {
 			fetch("/get_live_info").then(response => response.json()).then(data => {
-					document.getElementById("playlistName").innerHTML = "Loading playlist: "+data["name"];
-					if (data["scraped"]!=data["songs"]){
-						document.getElementById("scraped").innerHTML=data["scraped"]+"/"+data["songs"]+" songs loaded from playlist"
+					document.getElementById("playlistName").innerHTML = "Loading playlist: "+data.name;
+					if (data.scraped!=data.songs){
+						document.getElementById("scraped").innerHTML=data.scraped+"/"+data.songs+" songs loaded from playlist"
 						document.getElementById("matched").innerHTML=""
 					}
 					else{
 						document.getElementById("scraped").innerHTML="Musi playlist loaded"
-						document.getElementById("matched").innerHTML="Finished searching for "+data["matched"]+"/"+data["songs"]+" songs on spotify"
+						document.getElementById("matched").innerHTML="Finished searching for "+data.matched+"/"+data.songs+" songs on spotify"
 					}
-					if (data["songs"]!=0 && data["matched"]==data["songs"]){
+					
+					let notFoundTableBody = document.getElementById('notFoundTableBody');
+					notFoundTableBody.innerHTML = ''; // Clear existing rows
+					data.not_found.forEach(song => {
+						let row = document.createElement('tr');
+	
+						let Cell = document.createElement('td');
+						let Link = document.createElement("a");
+						Link.setAttribute("href", song["url"])
+						let LinkText = document.createTextNode(song["title"]+" by "+song["artist"]);
+						Link.appendChild(LinkText);
+						Cell.appendChild(Link);
+	
+						row.appendChild(Cell);
+	
+						notFoundTableBody.appendChild(row);
+					});
+					
+					let foundTableBody = document.getElementById('foundTableBody');
+					foundTableBody.innerHTML = ''; // Clear existing rows
+	
+					data.matches.forEach(match => {
+						let row = document.createElement('tr');
+	
+						let ytCell = document.createElement('td');
+						let ytLink = document.createElement("a");
+						ytLink.setAttribute("href", match["yt-url"])
+						let ytLinkText = document.createTextNode(match["yt-title"]+" by "+match["yt-author"]);
+						ytLink.appendChild(ytLinkText);
+						ytCell.appendChild(ytLink);
+		
+						let spCell = document.createElement('td');
+						let spLink = document.createElement("a");
+						spLink.setAttribute("href", "http://open.spotify.com/track/"+match["sp-id"])
+						let spLinkText = document.createTextNode(match["sp-title"]+" by "+match["sp-artist"]);
+						spLink.appendChild(spLinkText);
+						spCell.appendChild(spLink);
+	
+						row.appendChild(ytCell);
+						row.appendChild(spCell);
+	
+						foundTableBody.appendChild(row);
+					});
+					
+					if (data.songs!=0 && data.matched==data.songs){
 						clearInterval(intervalId);
-						fetchFound()
-						fetchNotFound()
-						clearInterval(intervalId2);
 					}
-					else if (!data["loading"]){
+					else if (!data.loading){
 						window.location.replace("/error");
 					}
 				}
@@ -89,10 +78,6 @@
 		}
 		var intervalId = window.setInterval(function(){
 			fetchLiveData()
-		}, 500);
-		var intervalId2 = window.setInterval(function(){
-			fetchFound()
-			fetchNotFound()
 		}, 1000);
     </script>
 </head>
@@ -119,7 +104,7 @@
 	 </div>
  
  	 <div>
- 	  <h2>Songs with matches on Spotify:</h2>
+ 	  <h2>Songs found on Spotify:</h2>
  	  <div style="overflow-y:auto;max-height: 160px;">
        <table border="1"><thead>
         <tr>

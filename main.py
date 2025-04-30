@@ -110,7 +110,7 @@ def song_search(song_name):
     
 def add_match(musi,sp):
     global matches
-    matches.append({
+    matches.insert(0,{
         "yt-title":truncate(musi["title"],27),
         "yt-author":truncate(musi["artist"]),
         "yt-url":musi["url"],
@@ -121,11 +121,6 @@ def add_match(musi,sp):
     
 def convert_playlist(link):
     global matched_songs, scraped_songs, total_songs, playlist_name, currently_loading, load_error, spotify_songs, not_found, matches
-    matched_songs=0
-    scraped_songs=0
-    total_songs=0
-    playlist_name=""
-    matches=[]
     songs=[]
     attempts=0
     while len(songs)==0 and attempts<20:
@@ -157,7 +152,7 @@ def convert_playlist(link):
                 spotify_songs.append(song)
             else:
                 matched_songs+=1
-                not_found.append(musi_song)
+                not_found.insert(0,musi_song)
             continue
         elif match is None:
             load_error="Disconnected from link registry database"
@@ -209,7 +204,7 @@ def convert_playlist(link):
             add_song_to_registry(db_connection,musi_song,song['uri'])
             #print("found "+song['name']+" by "+song['artists'][0]['name']+" without artist")
         else:
-            not_found.append(musi_song)
+            not_found.insert(0,musi_song)
             matched_songs+=1
             add_song_to_registry(db_connection,musi_song,"")
             #print(musi_song['title']+" not found")
@@ -248,9 +243,15 @@ def error():
     
 @app.route('/link', methods = ['POST'])
 def link():
-    global currently_loading
+    global currently_loading, matched_songs, scraped_songs, total_songs, playlist_name, matches, not_found
     if request.method == 'POST':
         currently_loading=True
+        matched_songs=0
+        scraped_songs=0
+        total_songs=0
+        playlist_name=""
+        matches=[]
+        not_found=[]
         t=Thread(target=convert_playlist,args=(request.form["fname"],))
         t.start()
         return redirect("/load_playlist", code=307)
@@ -262,18 +263,8 @@ def load_playlist():
 
 @app.route("/get_live_info",methods=["GET"])
 def get_live_info():
-    global total_songs, scraped_songs, matched_songs, playlist_name, currently_loading
-    return {"name":playlist_name,"songs":total_songs,"matched":matched_songs,"scraped":scraped_songs,"loading":currently_loading}
-
-@app.route("/get_matches",methods=["GET"])
-def get_matches():
-    global matches
-    return matches
-
-@app.route("/get_not_found",methods=["GET"])
-def get_not_found():
-    global not_found
-    return not_found
+    global total_songs, scraped_songs, matched_songs, playlist_name, currently_loading, matches, not_found
+    return {"name":playlist_name,"songs":total_songs,"matched":matched_songs,"scraped":scraped_songs,"loading":currently_loading,"matches":matches,"not_found":not_found}
 
 if __name__=="__main__":
     app.run(debug=True, host="0.0.0.0")
