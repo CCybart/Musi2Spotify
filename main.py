@@ -22,7 +22,6 @@ spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(
 )
 link_registry={}
 prev_link_registry={}
-db_connection=connect_to_db()
 session=HTMLSession()
 session.browser
 
@@ -144,12 +143,13 @@ def convert_playlist(link):
     artistmatch={}
     spotify_songs=[]
     not_found=[]
+    db_connection=connect_to_db()
     for musi_song in songs:
         if not currently_loading:
             load_error="Unknown error"
             return
         match=match_song_registry(db_connection,musi_song)
-        if len(match)==1:
+        if match is not None and len(match)==1:
             if match[0][2]!="":
                 song=spotify.track(match[0][2])
                 matched_songs+=1
@@ -159,6 +159,10 @@ def convert_playlist(link):
                 matched_songs+=1
                 not_found.append(musi_song)
             continue
+        elif match is None:
+            load_error="Disconnected from link registry database"
+            currently_loading=False
+            return
         artist=None
         if musi_song['artist'] not in artistmatch:
             for poss_artist in artistmatch.keys():
@@ -232,6 +236,9 @@ def convert_playlist(link):
     
 @app.route('/')
 def homepage():
+    global currently_loading
+    currently_loading=False
+    print("loaded homepage")
     return render_template("index.html")
     
 @app.route("/error",methods=["GET"])
@@ -261,9 +268,7 @@ def get_live_info():
 @app.route("/get_matches",methods=["GET"])
 def get_new_matches():
     global matches
-    copy=matches.copy()
-    matches.clear()
-    return copy
+    return matches
 
 if __name__=="__main__":
     app.run(debug=True, host="0.0.0.0")

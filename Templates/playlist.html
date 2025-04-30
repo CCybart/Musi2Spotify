@@ -8,7 +8,7 @@
 		function fetchNewMatches() {
             fetch('/get_matches').then(response => response.json()).then(data => {
 				let tableBody = document.getElementById('foundTableBody');
-				//tableBody.innerHTML = ''; // Clear existing rows
+				tableBody.innerHTML = ''; // Clear existing rows
 
 				data.forEach(match => {
 					let row = document.createElement('tr');
@@ -38,8 +38,14 @@
         function fetchLiveData() {
 			fetch("/get_live_info").then(response => response.json()).then(data => {
 					document.getElementById("playlistName").innerHTML = "Loading playlist: "+data["name"];
-					document.getElementById("scraped").innerHTML = data["scraped"]+"/"+data["songs"]+" songs loaded from playlist"
-					document.getElementById("matched").innerHTML = "Finished searching for "+data["matched"]+" songs on spotify"
+					if (data["scraped"]!=data["songs"]){
+						document.getElementById("scraped").innerHTML=data["scraped"]+"/"+data["songs"]+" songs loaded from playlist"
+						document.getElementById("matched").innerHTML=""
+					}
+					else{
+						document.getElementById("scraped").innerHTML="Musi playlist loaded"
+						document.getElementById("matched").innerHTML="Finished searching for "+data["matched"]+"/"+data["songs"]+" songs on spotify"
+					}
 					if (data["songs"]!=0 && data["matched"]==data["songs"]){
 						clearInterval(intervalId);
 						fetchNewMatches()
@@ -68,6 +74,7 @@
 	<p id="matched"></p>
 
 	<h2>Songs with matches on spotify:</h2>
+	<div style="overflow-y:scroll;height: 160px;">
     <table border="1"><thead>
      <tr>
       <td>Youtube Video</td>
@@ -76,6 +83,7 @@
 	 <tbody id="foundTableBody">
 	 </tbody>
     </table>
+	</div>
 
 </body>
 </html>
