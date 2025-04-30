@@ -1,4 +1,5 @@
-import sys
+from flask import *
+from threading import Thread
 from requests_html import HTMLSession
 import json
 import spotipy
@@ -6,6 +7,8 @@ from spotipy.oauth2 import SpotifyOAuth
 import re
 from match_strings import *
 from sql_interface import *
+
+app = Flask(__name__)
 
 with open("secrets.env","r") as f:
     secrets=json.loads(f.read())
@@ -17,29 +20,50 @@ spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(
     requests_timeout=10,
     retries=5
 )
-session=HTMLSession()
 link_registry={}
 prev_link_registry={}
 db_connection=connect_to_db()
+session=HTMLSession()
+session.browser
+
+total_songs=0
+scraped_songs=0
+matched_songs=0
+playlist_name=""
+currently_loading=False
+load_error="Unknown error"
+not_found=[]
+spotify_songs=[]
+matches=[]
 
 def scrape_playlist(link):
+    global total_songs, scraped_songs, playlist_name, currently_loading
     songs=[]
+    scraped_songs=0
     r=session.get(link)
-    r.html.render(sleep=1)
+    try:
+        r.html.render(sleep=1)
+    except:
+        currently_loading=False
+        load_error="Failed to connect to HTMLSession"
+        return
     r=r.html.html
+    playlist_name=r[r.find('playlist_header_title">')+23:]
+    playlist_name=playlist_name[:playlist_name.find("</div>")]
     r=r[r.find("video_title")+1:]
     r=r[r.find('href="')+1:]
     r=r[r.find('href="')+1:]
-    tot_songs=r.count('href="')
+    total_songs=r.count('href="')
     while r.find('href="')!=-1:
         r=r[r.find('href="')+6:]
         url=r[:r.find('"')]
         title=r[r.find("video_title")+13:]
-        title=title[:title.find("<")]
+        title=title[:title.find("</div>")]
         artist=r[r.find("video_artist")+14:]
-        artist=artist[:artist.find("<")]
+        artist=artist[:artist.find("</div>")]
         if title[0]!=">":
             songs.append({"artist":artist,"title":title,"url":url})
+            scraped_songs+=1
             #print(artist)
             #print(title)
     return songs
@@ -85,14 +109,34 @@ def song_search(song_name):
                 return song
     return None
     
+def add_match(musi,sp):
+    global matches
+    matches.append({
+        "yt-title":truncate(musi["title"],27),
+        "yt-author":truncate(musi["artist"]),
+        "yt-url":musi["url"],
+        "sp-title":truncate(sp["name"],27),
+        "sp-artist":truncate(sp["artists"][0]["name"]),
+        "sp-id":sp["id"]
+    })
+    
 def convert_playlist(link):
+    global matched_songs, scraped_songs, total_songs, playlist_name, currently_loading, load_error, spotify_songs, not_found, matches
+    matched_songs=0
+    scraped_songs=0
+    total_songs=0
+    playlist_name=""
+    matches=[]
     songs=[]
     attempts=0
     while len(songs)==0 and attempts<20:
         attempts+=1
         songs=scrape_playlist(link)
-    if attempts>=20 and len(titles)==0:
-        print("Webscraping failed. Try again")
+        if not currently_loading:
+            return
+    if attempts>=20 and len(songs)==0:
+        load_error="Webscraping failed. Please try again"
+        currently_loading=False
         return
     
     print("Playlist scraped successfully. Starting search.\n")
@@ -101,12 +145,18 @@ def convert_playlist(link):
     spotify_songs=[]
     not_found=[]
     for musi_song in songs:
+        if not currently_loading:
+            load_error="Unknown error"
+            return
         match=match_song_registry(db_connection,musi_song)
         if len(match)==1:
             if match[0][2]!="":
                 song=spotify.track(match[0][2])
+                matched_songs+=1
+                add_match(musi_song,song)
                 spotify_songs.append(song)
             else:
+                matched_songs+=1
                 not_found.append(musi_song)
             continue
         artist=None
@@ -137,7 +187,9 @@ def convert_playlist(link):
             song=song_search_artist(musi_song['title'],artist['name'])
             if song is not None:
                 spotify_songs.append(song)
-                add_song_to_registry(db_connection,musi_song,song)
+                matched_songs+=1
+                add_match(musi_song,song)
+                add_song_to_registry(db_connection,musi_song,song["uri"])
                 #print("found "+song['name']+" by "+song['artists'][0]['name'])
                 continue
             #else:
@@ -148,10 +200,13 @@ def convert_playlist(link):
         song=song_search(musi_song['title'])
         if song is not None:
             spotify_songs.append(song)
+            matched_songs+=1
+            add_match(musi_song,song)
             add_song_to_registry(db_connection,musi_song,song['uri'])
             #print("found "+song['name']+" by "+song['artists'][0]['name']+" without artist")
         else:
             not_found.append(musi_song)
+            matched_songs+=1
             add_song_to_registry(db_connection,musi_song,"")
             #print(musi_song['title']+" not found")
     
@@ -165,12 +220,50 @@ def convert_playlist(link):
     print()
     print(str(len(spotify_songs))+" songs found of "+str(len(songs))+" total")
     
+    currently_loading=False
     
     
+    #if len(sys.argv)!=2:
+    #    print("Must specify playlist link")
+    #elif not sys.argv[1].startswith("https://feelthemusi.com/playlist/"):
+    #    print("Not a musi playlist link")
+    #else:
+    #    convert_playlist(sys.argv[1])
+    
+@app.route('/')
+def homepage():
+    return render_template("index.html")
+    
+@app.route("/error",methods=["GET"])
+def error():
+    global load_error
+    return render_template("error.html", ERROR=load_error)
+    
+@app.route('/link', methods = ['POST'])
+def link():
+    global currently_loading
+    if request.method == 'POST':
+        currently_loading=True
+        t=Thread(target=convert_playlist,args=(request.form["fname"],))
+        t.start()
+        return redirect("/load_playlist", code=307)
+    return "Operation not supported"
+    
+@app.route('/load_playlist', methods = ['POST'])
+def load_playlist():
+    return render_template("playlist.html")
+
+@app.route("/get_live_info",methods=["GET"])
+def get_live_info():
+    global total_songs, scraped_songs, matched_songs, playlist_name, currently_loading
+    return {"name":playlist_name,"songs":total_songs,"matched":matched_songs,"scraped":scraped_songs,"loading":currently_loading}
+
+@app.route("/get_matches",methods=["GET"])
+def get_new_matches():
+    global matches
+    copy=matches.copy()
+    matches.clear()
+    return copy
+
 if __name__=="__main__":
-    if len(sys.argv)!=2:
-        print("Must specify playlist link")
-    elif not sys.argv[1].startswith("https://feelthemusi.com/playlist/"):
-        print("Not a musi playlist link")
-    else:
-        convert_playlist(sys.argv[1])
+    app.run(debug=True, host="0.0.0.0")

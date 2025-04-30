@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Musi2Spotify</title>
+    <script>
+		function fetchNewMatches() {
+            fetch('/get_matches').then(response => response.json()).then(data => {
+				let tableBody = document.getElementById('foundTableBody');
+				//tableBody.innerHTML = ''; // Clear existing rows
+
+				data.forEach(match => {
+					let row = document.createElement('tr');
+
+					let ytCell = document.createElement('td');
+					let ytLink = document.createElement("a");
+					ytLink.setAttribute("href", match["yt-url"])
+					let ytLinkText = document.createTextNode(match["yt-title"]+" by "+match["yt-author"]);
+					ytLink.appendChild(ytLinkText);
+					ytCell.appendChild(ytLink);
+	
+					let spCell = document.createElement('td');
+					let spLink = document.createElement("a");
+					spLink.setAttribute("href", "http://open.spotify.com/track/"+match["sp-id"])
+					let spLinkText = document.createTextNode(match["sp-title"]+" by "+match["sp-artist"]);
+					spLink.appendChild(spLinkText);
+					spCell.appendChild(spLink);
+
+					row.appendChild(ytCell);
+					row.appendChild(spCell);
+
+					tableBody.appendChild(row);
+				});
+			}).catch(error => console.error('Error fetching file list:', error));
+        }
+	
+        function fetchLiveData() {
+			fetch("/get_live_info").then(response => response.json()).then(data => {
+					document.getElementById("playlistName").innerHTML = "Loading playlist: "+data["name"];
+					document.getElementById("scraped").innerHTML = data["scraped"]+"/"+data["songs"]+" songs loaded from playlist"
+					document.getElementById("matched").innerHTML = "Finished searching for "+data["matched"]+" songs on spotify"
+					if (data["songs"]!=0 && data["matched"]==data["songs"]){
+						clearInterval(intervalId);
+						fetchNewMatches()
+						clearInterval(intervalId2);
+					}
+					else if (!data["loading"]){
+						window.location.replace("/error");
+					}
+				}
+			)
+		}
+		var intervalId = window.setInterval(function(){
+			fetchLiveData()
+		}, 500);
+		var intervalId2 = window.setInterval(function(){
+			fetchNewMatches()
+		}, 1000);
+    </script>
+</head>
+<body>
+    <h1>Musi to Spotify playlist converter</h1>
+
+    <h2>waaw</h2>
+    <p id="playlistName">Loading playlist: </p>
+	<p id="scraped"></p>
+	<p id="matched"></p>
+
+	<h2>Songs with matches on spotify:</h2>
+    <table border="1"><thead>
+     <tr>
+      <td>Youtube Video</td>
+      <td>Spotify Track</td>
+     </tr></thead>
+	 <tbody id="foundTableBody">
+	 </tbody>
+    </table>
+
+</body>
+</html>

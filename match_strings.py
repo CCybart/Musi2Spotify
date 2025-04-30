@@ -1,5 +1,10 @@
 import re
 
+def truncate(string,length=18):
+    if len(string)>length:
+        return string[:length]+"..."
+    return string
+
 def clean_string(string):
     res=""
     num=0
