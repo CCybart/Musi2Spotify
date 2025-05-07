@@ -111,14 +111,19 @@ def song_search(song_name):
     
 def add_match(musi,sp,index=0):
     global matches
-    matches.insert(index,{
+    res={
         "yt_title":truncate(musi["title"],27),
         "yt_author":truncate(musi["artist"]),
         "yt_url":musi["url"],
         "sp_title":truncate(sp["name"],27),
         "sp_artist":truncate(sp["artists"][0]["name"]),
         "sp_id":sp["id"]
-    })
+    }
+    for match in matches:
+        if match["yt_url"]==musi["url"]:
+            matches.remove(match)
+            break
+    matches.insert(index,res)
     
 def convert_playlist(link):
     global matched_songs, scraped_songs, total_songs, playlist_name, currently_loading, load_error, youtube_songs, spotify_songs, not_found, matches
@@ -154,7 +159,7 @@ def convert_playlist(link):
         match=match_song_registry(db_connection,musi_song)
         if match is not None and len(match)==1:
             if match[0][2]!="":
-                song=spotify.track(match[0][2])
+                song=json.loads(match[0][3])
                 matched_songs+=1
                 add_match(musi_song,song)
                 spotify_songs.append(song)
@@ -201,7 +206,7 @@ def convert_playlist(link):
                 spotify_songs.append(song)
                 matched_songs+=1
                 add_match(musi_song,song)
-                add_song_to_registry(db_connection,musi_song,song["uri"])
+                add_song_to_registry(db_connection,musi_song,song)
                 #print("found "+song['name']+" by "+song['artists'][0]['name'])
                 continue
             #else:
@@ -214,7 +219,7 @@ def convert_playlist(link):
             spotify_songs.append(song)
             matched_songs+=1
             add_match(musi_song,song)
-            add_song_to_registry(db_connection,musi_song,song['uri'])
+            add_song_to_registry(db_connection,musi_song,song)
             #print("found "+song['name']+" by "+song['artists'][0]['name']+" without artist")
         else:
             res={
@@ -224,17 +229,17 @@ def convert_playlist(link):
             }
             not_found.insert(0,res)
             matched_songs+=1
-            add_song_to_registry(db_connection,musi_song,"")
+            add_song_to_registry(db_connection,musi_song,{})
             #print(musi_song['title']+" not found")
     
     print("\nDone. printing results:\n")
     
-    for song in spotify_songs:
-        print("found "+song['name']+" by "+song['artists'][0]['name'])
-    print()
-    for song in not_found:
-        print("didn't find "+song['title'])
-    print()
+    #for song in spotify_songs:
+    #    print("found "+song['name']+" by "+song['artists'][0]['name'])
+    #print()
+    #for song in not_found:
+    #    print("didn't find "+song['title'])
+    #print()
     print(str(len(spotify_songs))+" songs found of "+str(len(youtube_songs))+" total")
     
     currently_loading=False
@@ -317,7 +322,7 @@ def update_match():
         except:
             return {"message":"Error searching for Spotify track.\nAre you sure this link is valid?"}
         try:
-            add_song_to_registry(connect_to_db(),yt_song,sp_song["uri"],1)
+            add_song_to_registry(connect_to_db(),yt_song,sp_song,1)
         except:
             return {"message":"Error adding match to registry. Please try again."}
         nf_song={

@@ -42,8 +42,16 @@ def match_song_registry(connection, musi):
         res=read(connection,query)
     return res
 
-def add_song_to_registry(connection, musi,sp_uri,verified=0):
-    query=f'REPLACE INTO link_registry VALUES ("{musi["url"]}",{verified},"{sp_uri}");'
+def add_song_to_registry(connection, musi,sp,verified=0):
+    query=f"REPLACE INTO link_registry VALUES ('{musi["url"]}',{verified},'{""}','{{}}');"
+    if sp!={}:
+        res={
+            "name":sp["name"].replace("'","''").replace('"','\\\"'),
+            "uri":sp["uri"],
+            "id":sp["id"],
+            "artists":[{"name":sp["artists"][0]["name"].replace("'","''").replace('"','\\\"')}]
+        }
+        query=f"REPLACE INTO link_registry VALUES ('{musi["url"]}',{verified},'{res["uri"]}','{json.dumps(res)}');"
     if connection is not None:
         execute(connection,query)
     else:
