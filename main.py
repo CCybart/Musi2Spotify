@@ -109,7 +109,7 @@ def song_search(song_name):
                 return song
     return None
     
-def add_match(musi,sp,index=0):
+def add_match(musi,sp,index=0,remove=False):
     global matches
     res={
         "yt_title":truncate(musi["title"],27),
@@ -123,7 +123,8 @@ def add_match(musi,sp,index=0):
         if match["yt_url"]==musi["url"]:
             matches.remove(match)
             break
-    matches.insert(index,res)
+    if not remove:
+        matches.insert(index,res)
     
 def convert_playlist(link):
     global matched_songs, scraped_songs, total_songs, playlist_name, currently_loading, load_error, youtube_songs, spotify_songs, not_found, matches
@@ -301,11 +302,18 @@ def get_song():
 
 @app.route("/update_match",methods=["GET","POST"])
 def update_match():
-    global youtube_songs, spotify_songs
+    global youtube_songs, spotify_songs, matches
     if request.method=="POST":
         body=json.loads(request.data)
         yt_url=body["yt_url"]
         sp_url=body["sp_url"]
+        remove=body["remove"]
+        if not remove:
+            for match in matches:
+                if match["yt_url"]==yt_url:
+                    if match["sp_id"]==sp_url.replace("open.spotify.com/track/","").replace("https://","").replace("http://",""):
+                        return {"message":"Link specified is already matched to the same song"}
+                    break
         yt_song={}
         sp_song={}
         index=-1
@@ -322,7 +330,10 @@ def update_match():
         except:
             return {"message":"Error searching for Spotify track.\nAre you sure this link is valid?"}
         try:
-            add_song_to_registry(connect_to_db(),yt_song,sp_song,1)
+            if not remove:
+                add_song_to_registry(connect_to_db(),yt_song,sp_song,1)
+            else:
+                add_song_to_registry(connect_to_db(),yt_song,{},1)
         except:
             return {"message":"Error adding match to registry. Please try again."}
         nf_song={
@@ -330,10 +341,22 @@ def update_match():
             'url': yt_song['url'],
             'artist': truncate(yt_song['artist'])
         }
-        if nf_song in not_found:
-            not_found.remove(nf_song)
-        spotify_songs.insert(index,sp_song)
-        add_match(yt_song,sp_song,len(youtube_songs)-index-1)
+        if not remove:
+            if nf_song in not_found:
+                not_found.remove(nf_song)
+            spotify_songs.insert(index,sp_song)
+            add_match(yt_song,sp_song,len(youtube_songs)-index-1)
+        else:
+            not_found.insert(0,nf_song)
+            for song in spotify_songs:
+                if song["id"]==sp_url.replace("open.spotify.com/track/","").replace("https://","").replace("http://",""):
+                    spotify_songs.remove(song)
+                    break
+            add_match(yt_song,sp_song,len(youtube_songs)-index-1,True)
+        
+        print(len(spotify_songs))
+        print(len(not_found))
+        print(len(matches))
         
         return {"message":"Success"}
     return redirect("/")

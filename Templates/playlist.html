@@ -15,7 +15,7 @@
 		let loading=true;
         function fetchLiveData() {
 			fetch("/get_live_info").then(response => response.json()).then(data => {
-					document.getElementById("playlistName").innerHTML = "Musi playlist name:"+data.name;
+					document.getElementById("playlistName").innerHTML = "Musi playlist name: "+data.name;
 					if (data.scraped!=data.songs){
 						document.getElementById("scraped").innerHTML=data.scraped+"/"+data.songs+" songs loaded from playlist"
 						document.getElementById("matched").innerHTML="<br>"
@@ -97,6 +97,7 @@
 					loading=data.loading;
 					
 					if (data.songs!=0 && data.matched==data.songs){
+						document.getElementById("matchUpdater").style.display="block";
 						document.getElementById("scraped").innerHTML=""
 						document.getElementById("matched").innerHTML="Finished searching for "+data.matched+"/"+data.songs+" songs on Spotify"
 						clearInterval(intervalId);
@@ -121,6 +122,12 @@
 				document.getElementById("selectedVideo").innerHTML = data.yt_title;
 				document.getElementById("selectedVideo").href = yt_url;
 				document.getElementById("matchedSong").value = sp_url;
+				if (sp_url==""){
+					document.getElementById("removeButton").style.display="none";
+				}
+				else{
+					document.getElementById("removeButton").style.display="block";
+				}
 			});
 		}
 		
@@ -138,11 +145,41 @@
 				return false;
 			}
 			let yt_url=document.getElementById("selectedVideo").href;
-			fetch("/update_match", {method: "POST", body: JSON.stringify({yt_url:yt_url,sp_url:url})}).then(response => response.json()).then(data => {
+			fetch("/update_match", {method: "POST", body: JSON.stringify({yt_url:yt_url,sp_url:url,remove:false})}).then(response => response.json()).then(data => {
 				console.log(data);
 				if (data.message=="Success"){
 					fetchLiveData();
 					alert("Successfully updated match");
+					cancel_selection();
+				}
+				else{
+					document.getElementById("matchedSong").value="";
+					alert(data.message);
+				}
+			});
+			return false;
+		}
+		
+		function remove_match(){
+			let url=document.getElementById("matchedSong").value;
+			if (url.startsWith("http://open.spotify.com/track/") || url.startsWith("https://open.spotify.com/track/") || url.startsWith("open.spotify.com/track/")){
+				if (url.indexOf("?")>-1){
+					url=url.substring(0,url.indexOf("?"));
+				}
+				console.log(url);
+			}
+			else if (url!=""){
+				alert("Format invalid. Make sure you're copying the correct link!");
+				document.getElementById("matchedSong").value="";
+				return false;
+			}
+			let yt_url=document.getElementById("selectedVideo").href;
+			fetch("/update_match", {method: "POST", body: JSON.stringify({yt_url:yt_url,sp_url:url,remove:true})}).then(response => response.json()).then(data => {
+				console.log(data);
+				if (data.message=="Success"){
+					fetchLiveData();
+					alert("Successfully removed match");
+					cancel_selection();
 				}
 				else{
 					document.getElementById("matchedSong").value="";
@@ -169,6 +206,7 @@
 	<p id="scraped"><br></p>
 	<p id="matched"><br></p>
 	
+	<div id="matchUpdater" style="display: none;">
 	<h2>Manually match YouTube video to Spotify track (optional):</h2>
 	<h3 id="isSelected">Select a song below:</h3>
 	<div id="selectedSection" style="display: none;">
@@ -178,8 +216,12 @@
 		<input type="text" id="matchedSong" name="url" value="">
 		<input type="submit" value="Update">
 	</form> 
-	<br>
+	<div id="removeButton" style="display: none;">
+	<button type="button" onclick="remove_match()">Remove match</button>
+	(Only press if the song isn't on spotify and it was marked as such!)<br>
+	</div><br>
 	<button type="button" onclick="cancel_selection()">Cancel match</button>
+	</div>
 	</div>
 	
 	<div class="flex-container">
