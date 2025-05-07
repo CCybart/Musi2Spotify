@@ -32,6 +32,7 @@ playlist_name=""
 currently_loading=False
 load_error="Unknown error"
 not_found=[]
+youtube_songs=[]
 spotify_songs=[]
 matches=[]
 
@@ -43,8 +44,8 @@ def scrape_playlist(link):
     try:
         r.html.render(sleep=1)
     except:
-        currently_loading=False
         load_error="Failed to connect to HTMLSession"
+        currently_loading=False
         return
     r=r.html.html
     playlist_name=r[r.find('playlist_header_title">')+23:]
@@ -108,27 +109,34 @@ def song_search(song_name):
                 return song
     return None
     
-def add_match(musi,sp):
+def add_match(musi,sp,index=0):
     global matches
-    matches.insert(0,{
-        "yt-title":truncate(musi["title"],27),
-        "yt-author":truncate(musi["artist"]),
-        "yt-url":musi["url"],
-        "sp-title":truncate(sp["name"],27),
-        "sp-artist":truncate(sp["artists"][0]["name"]),
-        "sp-id":sp["id"]
+    matches.insert(index,{
+        "yt_title":truncate(musi["title"],27),
+        "yt_author":truncate(musi["artist"]),
+        "yt_url":musi["url"],
+        "sp_title":truncate(sp["name"],27),
+        "sp_artist":truncate(sp["artists"][0]["name"]),
+        "sp_id":sp["id"]
     })
     
 def convert_playlist(link):
-    global matched_songs, scraped_songs, total_songs, playlist_name, currently_loading, load_error, spotify_songs, not_found, matches
-    songs=[]
+    global matched_songs, scraped_songs, total_songs, playlist_name, currently_loading, load_error, youtube_songs, spotify_songs, not_found, matches
     attempts=0
-    while len(songs)==0 and attempts<20:
+    
+    if not link.startswith("https://feelthemusi.com/playlist/") and not link.startswith("feelthemusi.com/playlist/"):
+        load_error="Not a valid musi playlist. Copy the link found in the musi app.\nExample: https://feelthemusi.com/playlist/ABCDEF"
+        currently_loading=False
+        return
+    
+    youtube_songs=[]
+    
+    while len(youtube_songs)==0 and attempts<20:
         attempts+=1
-        songs=scrape_playlist(link)
+        youtube_songs=scrape_playlist(link)
         if not currently_loading:
             return
-    if attempts>=20 and len(songs)==0:
+    if attempts>=20 and len(youtube_songs)==0:
         load_error="Webscraping failed. Please try again"
         currently_loading=False
         return
@@ -139,7 +147,7 @@ def convert_playlist(link):
     spotify_songs=[]
     not_found=[]
     db_connection=connect_to_db()
-    for musi_song in songs:
+    for musi_song in youtube_songs:
         if not currently_loading:
             load_error="Unknown error"
             return
@@ -152,10 +160,15 @@ def convert_playlist(link):
                 spotify_songs.append(song)
             else:
                 matched_songs+=1
-                not_found.insert(0,musi_song)
+                res={
+                    'title': truncate(musi_song['title'],27),
+                    'url': musi_song['url'],
+                    'artist': truncate(musi_song['artist'])
+                }
+                not_found.insert(0,res)
             continue
         elif match is None:
-            load_error="Disconnected from link registry database"
+            load_error="Disconnected from link registry database. Please try again later."
             currently_loading=False
             return
         artist=None
@@ -195,7 +208,7 @@ def convert_playlist(link):
             #    not_found.append(musi_song)
             #    print(musi_song['title']+" not found")
             #continue
-            
+        
         song=song_search(musi_song['title'])
         if song is not None:
             spotify_songs.append(song)
@@ -204,7 +217,12 @@ def convert_playlist(link):
             add_song_to_registry(db_connection,musi_song,song['uri'])
             #print("found "+song['name']+" by "+song['artists'][0]['name']+" without artist")
         else:
-            not_found.insert(0,musi_song)
+            res={
+                'title': truncate(musi_song['title'],27),
+                'url': musi_song['url'],
+                'artist': truncate(musi_song['artist'])
+            }
+            not_found.insert(0,res)
             matched_songs+=1
             add_song_to_registry(db_connection,musi_song,"")
             #print(musi_song['title']+" not found")
@@ -217,17 +235,9 @@ def convert_playlist(link):
     for song in not_found:
         print("didn't find "+song['title'])
     print()
-    print(str(len(spotify_songs))+" songs found of "+str(len(songs))+" total")
+    print(str(len(spotify_songs))+" songs found of "+str(len(youtube_songs))+" total")
     
     currently_loading=False
-    
-    
-    #if len(sys.argv)!=2:
-    #    print("Must specify playlist link")
-    #elif not sys.argv[1].startswith("https://feelthemusi.com/playlist/"):
-    #    print("Not a musi playlist link")
-    #else:
-    #    convert_playlist(sys.argv[1])
     
 @app.route('/')
 def homepage():
@@ -236,12 +246,12 @@ def homepage():
     print("loaded homepage")
     return render_template("index.html")
     
-@app.route("/error",methods=["GET"])
+@app.route("/error",methods=["GET","POST"])
 def error():
     global load_error
     return render_template("error.html", ERROR=load_error)
     
-@app.route('/link', methods = ['POST'])
+@app.route('/link', methods = ["GET","POST"])
 def link():
     global currently_loading, matched_songs, scraped_songs, total_songs, playlist_name, matches, not_found
     if request.method == 'POST':
@@ -252,19 +262,76 @@ def link():
         playlist_name=""
         matches=[]
         not_found=[]
-        t=Thread(target=convert_playlist,args=(request.form["fname"],))
+        t=Thread(target=convert_playlist,args=(request.form["link"],))
         t.start()
         return redirect("/load_playlist", code=307)
-    return "Operation not supported"
+    return redirect("/")
     
-@app.route('/load_playlist', methods = ['POST'])
+@app.route('/load_playlist', methods = ["GET","POST"])
 def load_playlist():
-    return render_template("playlist.html")
+    if request.method == "POST":
+        return render_template("playlist.html")
+    return redirect("/")
 
-@app.route("/get_live_info",methods=["GET"])
+@app.route("/get_live_info",methods=["GET","POST"])
 def get_live_info():
     global total_songs, scraped_songs, matched_songs, playlist_name, currently_loading, matches, not_found
-    return {"name":playlist_name,"songs":total_songs,"matched":matched_songs,"scraped":scraped_songs,"loading":currently_loading,"matches":matches,"not_found":not_found}
+    if request.method == 'GET':
+        return {"name":playlist_name,"songs":total_songs,"matched":matched_songs,"scraped":scraped_songs,"loading":currently_loading,"matches":matches,"not_found":not_found}
+    return redirect("/")
+
+@app.route("/get_song",methods=["GET","POST"])
+def get_song():
+    global youtube_songs, spotify_songs
+    if request.method=="POST":
+        body=json.loads(request.data)
+        url=body["url"]
+        res={"yt_title":"Not found"}
+        for song in youtube_songs:
+            if song["url"]==url:
+                res["yt_title"]=song["title"]
+                break
+        return res
+    return redirect("/")
+
+@app.route("/update_match",methods=["GET","POST"])
+def update_match():
+    global youtube_songs, spotify_songs
+    if request.method=="POST":
+        body=json.loads(request.data)
+        yt_url=body["yt_url"]
+        sp_url=body["sp_url"]
+        yt_song={}
+        sp_song={}
+        index=-1
+        for i in range(0,len(youtube_songs)):
+            song=youtube_songs[i]
+            if song["url"]==yt_url:
+                yt_song=song
+                index=i
+                break
+        if i==-1:
+            return {"message":"Video not found in original playlist. Try again."}
+        try:
+            sp_song=spotify.track(sp_url)
+        except:
+            return {"message":"Error searching for Spotify track.\nAre you sure this link is valid?"}
+        try:
+            add_song_to_registry(connect_to_db(),yt_song,sp_song["uri"],1)
+        except:
+            return {"message":"Error adding match to registry. Please try again."}
+        nf_song={
+            'title': truncate(yt_song['title'],27),
+            'url': yt_song['url'],
+            'artist': truncate(yt_song['artist'])
+        }
+        if nf_song in not_found:
+            not_found.remove(nf_song)
+        spotify_songs.insert(index,sp_song)
+        add_match(yt_song,sp_song,len(youtube_songs)-index-1)
+        
+        return {"message":"Success"}
+    return redirect("/")
 
 if __name__=="__main__":
     app.run(debug=True, host="0.0.0.0")
