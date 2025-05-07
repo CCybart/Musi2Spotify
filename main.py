@@ -16,7 +16,7 @@ spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(
     client_id=secrets["APP_CLIENT_ID"],
     client_secret=secrets["APP_CLIENT_SECRET"],
     redirect_uri=secrets["APP_REDIRECT_URI"],
-    scope="user-library-read"),
+    scope="playlist-modify-public"),
     requests_timeout=10,
     retries=5
 )
@@ -172,6 +172,7 @@ def convert_playlist(link):
                     'artist': truncate(musi_song['artist'])
                 }
                 not_found.insert(0,res)
+                spotify_songs.append({})
             continue
         elif match is None:
             load_error="Disconnected from link registry database. Please try again later."
@@ -229,6 +230,7 @@ def convert_playlist(link):
                 'artist': truncate(musi_song['artist'])
             }
             not_found.insert(0,res)
+            spotify_songs.append({})
             matched_songs+=1
             add_song_to_registry(db_connection,musi_song,{})
             #print(musi_song['title']+" not found")
@@ -344,21 +346,47 @@ def update_match():
         if not remove:
             if nf_song in not_found:
                 not_found.remove(nf_song)
+            spotify_songs.pop(index)
             spotify_songs.insert(index,sp_song)
             add_match(yt_song,sp_song,len(youtube_songs)-index-1)
         else:
             not_found.insert(0,nf_song)
             for song in spotify_songs:
-                if song["id"]==sp_url.replace("open.spotify.com/track/","").replace("https://","").replace("http://",""):
+                if song!={} and song["id"]==sp_url.replace("open.spotify.com/track/","").replace("https://","").replace("http://",""):
                     spotify_songs.remove(song)
+                    spotify_songs.insert(index,{})
                     break
             add_match(yt_song,sp_song,len(youtube_songs)-index-1,True)
         
-        print(len(spotify_songs))
-        print(len(not_found))
-        print(len(matches))
-        
         return {"message":"Success"}
+    return redirect("/")
+
+@app.route("/create_playlist",methods=["POST","GET"])
+def create_playlist():
+    global spotify_songs, playlist_name
+    if request.method=="POST":
+        existing_id=json.loads(request.data)["url"].replace("open.spotify.com/playlist/","").replace("https://","").replace("http://","")
+        tracks=[]
+        count=0
+        for song in spotify_songs:
+            if song!={}:
+                if count%99==0:
+                    tracks.append([])
+                tracks[int(count/100)].append(song["uri"])
+                count+=1
+        playlist={}
+        if existing_id=="":
+            playlist=spotify.user_playlist_create(spotify.current_user()["id"],playlist_name)
+        else:
+            try:
+                playlist=spotify.playlist(existing_id)
+                spotify.playlist_replace_items(playlist["id"],[])
+            except:
+                return {"message":"Error: playlist not found."}
+        for batch in tracks:
+            spotify.playlist_add_items(playlist["id"],batch)
+        print("Converted playlist successfully")
+        return {"message":"Success","link":"https://open.spotify.com/playlist/"+playlist["id"]}
     return redirect("/")
 
 if __name__=="__main__":

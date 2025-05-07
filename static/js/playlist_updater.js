@@ -95,6 +95,33 @@ function fetchLiveData() {
 	})
 }
 
+
+function create_playlist(){
+	let url=document.getElementById("existingPlaylist").value;
+	if (url.startsWith("http://open.spotify.com/playlist/") || url.startsWith("https://open.spotify.com/playlist/") || url.startsWith("open.spotify.com/playlist/")){
+		if (url.indexOf("?")>-1){
+			url=url.substring(0,url.indexOf("?"));
+		}
+		console.log(url);
+	}
+	else if (url!=""){
+		alert("Format invalid. Make sure you're copying the correct link!");
+		document.getElementById("existingPlaylist").value="";
+		return false;
+	}
+	fetch("/create_playlist", {method:"POST",body: JSON.stringify({url:url})}).then(response => response.json()).then(data => {
+		if (data.message=="Success"){
+			alert("Successfully converted playlist!");
+			window.open(data.link, '_blank').focus();
+		}
+		else{
+			document.getElementById("existingPlaylist").value="";
+			alert(data.message);
+		}
+	});
+	return false;
+}
+
 function selectSong(event){
 	if (loading){
 		alert("Please wait for all songs to be searched for. This service only searches spotify once, and after that searches are much faster. If you need to run the search on the playlist a second time, it will not take long, so please wait.");

@@ -21,6 +21,12 @@
 	<p id="matched"><br></p>
 	
 	<div id="matchUpdater" style="display: none;">
+	Please verify the matches found on Spotify are correct, then press "Convert" to convert your playlist!<br>
+	<button type="button" onclick="create_playlist()">Convert</button><br><br>
+	Optional: to replace an existing Spotify playlist with this one, enter the link to the playlist below:
+	<form>
+		<input type="text" id="existingPlaylist" name="url" value="">
+	</form>
 	<h2>Manually match YouTube video to Spotify track (optional):</h2>
 	<h3 id="isSelected">Select a song below:</h3>
 	<div id="selectedSection" style="display: none;">
