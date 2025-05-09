@@ -4,15 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Musi2Spotify</title>
+	<link rel="stylesheet" href="static/base.css">
 </head>
 <body>
-    <h1>Musi to Spotify playlist converter</h1>
-
+    <h1 class="header">Musi to Spotify playlist converter</h1>
+	
+	<div class="body">
+	
+	<div class="textbox">
     <h2>Input Musi playlist link:</h2>
     <form action="/link" method="post">
 		<input type="text" id="input_link" name="link" value="">
 		<input type="submit" value="Convert">
 	</form> 
+	</div>
+	</div>
 
 </body>
 </html>

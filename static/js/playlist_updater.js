@@ -20,7 +20,10 @@ function fetchLiveData() {
 		else{
 			document.getElementById("notFoundContainer").style.display="none";
 		}
+		
+		let nf_count=0;
 		data.not_found.forEach(song => {
+			nf_count+=1;
 			let row = document.createElement('tr');
 
 			let Cell = document.createElement('td');
@@ -35,20 +38,22 @@ function fetchLiveData() {
 			Button.addEventListener("click", selectSong, false);
 			Button.url=song.url;
 			Button.sp_url=""
-			let ButtonText = document.createTextNode("Select");
+			let ButtonText = document.createTextNode(nf_count);
 			Button.appendChild(ButtonText);
 			ButtonCell.appendChild(Button);
 	
-			row.appendChild(Cell);
 			row.appendChild(ButtonCell);
+			row.appendChild(Cell);
 
 			notFoundTableBody.appendChild(row);
 		});
 			
 		let foundTableBody = document.getElementById('foundTableBody');
 		foundTableBody.innerHTML = '';
-
+	
+		let m_count=0;
 		data.matches.forEach(match => {
+			m_count+=1;
 			let row = document.createElement('tr');
 
 			let ytCell = document.createElement('td');
@@ -70,13 +75,13 @@ function fetchLiveData() {
 			Button.addEventListener("click", selectSong, false);
 			Button.url=match["yt_url"];
 			Button.sp_url=spLink.href
-			let ButtonText = document.createTextNode("Select");
+			let ButtonText = document.createTextNode(m_count);
 			Button.appendChild(ButtonText);
 			ButtonCell.appendChild(Button);
 
+			row.appendChild(ButtonCell);
 			row.appendChild(ytCell);
 			row.appendChild(spCell);
-			row.appendChild(ButtonCell);
 
 			foundTableBody.appendChild(row);
 		});
@@ -157,12 +162,15 @@ function update_match(){
 		document.getElementById("matchedSong").value="";
 		return false;
 	}
+	else{
+		alert("You have to specify a spotify link! If you want to remove this match because the song doesn't exist on spotify, use the \"remove match\" button.");
+	}
 	let yt_url=document.getElementById("selectedVideo").href;
 	fetch("/update_match", {method: "POST", body: JSON.stringify({yt_url:yt_url,sp_url:url,remove:false})}).then(response => response.json()).then(data => {
 		console.log(data);
 		if (data.message=="Success"){
 			fetchLiveData();
-			alert("Successfully updated match");
+			alert("Successfully updated match.");
 			cancel_selection();
 		}
 		else{
@@ -182,7 +190,7 @@ function remove_match(){
 		console.log(url);
 	}
 	else if (url!=""){
-		alert("Format invalid. Make sure you're copying the correct link!");
+		alert("Format invalid. Reselect song.");
 		document.getElementById("matchedSong").value="";
 		return false;
 	}
@@ -191,7 +199,7 @@ function remove_match(){
 		console.log(data);
 		if (data.message=="Success"){
 			fetchLiveData();
-			alert("Successfully removed match");
+			alert("Successfully removed match.");
 			cancel_selection();
 		}
 		else{
@@ -204,7 +212,7 @@ function remove_match(){
 
 function cancel_selection(){
 	document.getElementById("selectedSection").style.display='none';
-	document.getElementById("isSelected").innerHTML = "Select a song below:";
+	document.getElementById("isSelected").innerHTML = "Select a song below.";
 }
 
 var intervalId = window.setInterval(function(){

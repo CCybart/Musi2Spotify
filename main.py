@@ -153,7 +153,7 @@ def convert_playlist(link):
     spotify_songs=[]
     not_found=[]
     db_connection=connect_to_db()
-    for musi_song in youtube_songs:
+    for musi_song in reversed(youtube_songs):
         if not currently_loading:
             load_error="Unknown error"
             return
@@ -348,7 +348,7 @@ def update_match():
                 not_found.remove(nf_song)
             spotify_songs.pop(index)
             spotify_songs.insert(index,sp_song)
-            add_match(yt_song,sp_song,len(youtube_songs)-index-1)
+            add_match(yt_song,sp_song,index)
         else:
             not_found.insert(0,nf_song)
             for song in spotify_songs:
@@ -356,7 +356,7 @@ def update_match():
                     spotify_songs.remove(song)
                     spotify_songs.insert(index,{})
                     break
-            add_match(yt_song,sp_song,len(youtube_songs)-index-1,True)
+            add_match(yt_song,sp_song,index,True)
         
         return {"message":"Success"}
     return redirect("/")

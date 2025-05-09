@@ -4,69 +4,88 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Musi2Spotify</title>
-	<style>
-		.flex-container {
-			display: flex;
-			flex-direction: row;
-			flex-wrap: nowrap;
-		}
-	</style>
+	<link rel="stylesheet" href="static/base.css">
     <script src="static/js/playlist_updater.js"></script>
 </head>
 <body>
-    <h1>Musi to Spotify playlist converter</h1>
-
+	<h1 class="header">Musi to Spotify playlist converter</h1>
+	
+	<div class="body">
+	
+	<div class="textbox">
     <h2 id="playlistName">Musi playlist name: </h2>
+	<hr>
 	<p id="scraped"><br></p>
 	<p id="matched"><br></p>
+	<a href="/">
+		<button type="button">Cancel conversion</button>
+	</a>
+	</div>
 	
-	<div id="matchUpdater" style="display: none;">
-	Please verify the matches found on Spotify are correct, then press "Convert" to convert your playlist!<br>
-	<button type="button" onclick="create_playlist()">Convert</button><br><br>
-	Optional: to replace an existing Spotify playlist with this one, enter the link to the playlist below:
+	<div id="matchUpdater" style="display: none; width: 70%; margin: auto;">
+	<div class="flex-container">
+	<div class="textbox">
+	<button type="button" onclick="create_playlist()">
+		<h2>Convert playlist</h2>
+	</button><br>
+	<hr>
+	<p>Please scroll down and verify the matches found on Spotify are correct before converting.</p>
+	<hr>
+	<p>To replace an existing Spotify playlist with this one, enter the link to the playlist below:<br>
 	<form>
 		<input type="text" id="existingPlaylist" name="url" value="">
 	</form>
+	<p class="note">Note: the playlist you are replacing will be unrecoverable if you pick the wrong one. Please double check this is the correct link.</p>
+	</p>
+	</div>
+	<div class="textbox">
 	<h2>Manually match YouTube video to Spotify track (optional):</h2>
-	<h3 id="isSelected">Select a song below:</h3>
+	<hr>
+	<h3 id="isSelected">Select a song below.</h3>
 	<div id="selectedSection" style="display: none;">
-	<a id="selectedVideo"></a>
+	<p style="background:white; display:inline-block; padding: 5pt; margin:0;"><a id="selectedVideo"></a><p>
+	<hr>
 	<h3 id="hasMatch">Matching Spotify track:</h3>
 	<form onsubmit="return update_match()">
 		<input type="text" id="matchedSong" name="url" value="">
 		<input type="submit" value="Update">
 	</form> 
 	<div id="removeButton" style="display: none;">
+	<p>If the song isn't on spotify:
 	<button type="button" onclick="remove_match()">Remove match</button>
-	(Only press if the song isn't on spotify and it was marked as such!)<br>
-	</div><br>
-	<button type="button" onclick="cancel_selection()">Cancel match</button>
+	</p>
+	</div>
+	<hr>
+	<p><button type="button" onclick="cancel_selection()">Cancel</button></p>
+	</div>
+	</div>
 	</div>
 	</div>
 	
 	<div class="flex-container">
-	 <div id="notFoundContainer" style="display: none;">
+	 <div id="notFoundContainer" class="box" style="display: none;">
 	  <h2>Songs not found on Spotify:  </h2>
-	  <div style="overflow-y:auto;max-height: 200px;">
+	  <hr>
+	  <div class="tableframe">
        <table border="1"><thead>
         <tr>
+		 <td></td>
          <td>YouTube Video</td>
-         <td>Add matching song</td>
         </tr></thead>
 	    <tbody id="notFoundTableBody">
 	    </tbody>
        </table>
 	  </div>
 	 </div>
- 
- 	 <div>
+ 	 <div class="box">
  	  <h2>Songs found on Spotify:</h2>
- 	  <div style="overflow-y:auto;max-height: 200px;">
+	  <hr>
+ 	  <div class="tableframe">
        <table border="1"><thead>
         <tr>
+		 <td></td>
          <td>YouTube Video</td>
          <td>Spotify Track</td>
-		 <td>Update incorrect match</td>
         </tr></thead>
  	    <tbody id="foundTableBody">
  	    </tbody>
@@ -74,6 +93,6 @@
  	  </div>
 	 </div>
  	</div>
-
+	</div>
 </body>
 </html>
