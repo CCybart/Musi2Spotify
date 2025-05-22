@@ -8,18 +8,17 @@ import re
 from match_strings import *
 from sql_interface import *
 
-app = Flask(__name__)
+app=Flask(__name__)
 
 with open("secrets.env","r") as f:
     secrets=json.loads(f.read())
-spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(
+oauth=SpotifyOAuth(
     client_id=secrets["APP_CLIENT_ID"],
     client_secret=secrets["APP_CLIENT_SECRET"],
     redirect_uri=secrets["APP_REDIRECT_URI"],
-    scope="playlist-modify-public"),
-    requests_timeout=10,
-    retries=5
+    scope="playlist-modify-public"
 )
+spotify=None
 link_registry={}
 prev_link_registry={}
 session=HTMLSession()
@@ -249,10 +248,30 @@ def convert_playlist(link):
     
 @app.route('/')
 def homepage():
-    global currently_loading
+    global currently_loading, spotify
     currently_loading=False
     print("loaded homepage")
-    return render_template("index.html")
+    token=None
+    if "code" in request.args:
+        token = oauth.get_access_token(request.args["code"], as_dict=False)
+    if token!=None:
+        spotify=spotipy.Spotify(auth=token, requests_timeout=10, retries=5)
+        print("logged in")
+        return render_template("index.html")
+    else:
+        return render_template("login_page.html")
+    
+@app.route("/login",methods=["GET","POST"])
+def login():
+    auth_url = oauth.get_authorize_url()
+    #token_info = oauth.get_cached_token()
+    return redirect(auth_url)
+    
+@app.route("/callback",methods=["GET","POST"])
+def callback():
+    print("callback")
+    #token_info = oauth.get_access_token(request.args["code"])
+    return redirect("/")
     
 @app.route("/error",methods=["GET","POST"])
 def error():
