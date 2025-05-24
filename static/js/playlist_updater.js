@@ -13,7 +13,7 @@ function fetchLiveData() {
 		}
 		
 		let notFoundTableBody = document.getElementById('notFoundTableBody');
-		notFoundTableBody.innerHTML = ''; 
+		notFoundTableBody.innerHTML = '';
 		if (data.not_found.length>0){
 			document.getElementById("notFoundContainer").style.display="block";
 		}
@@ -94,7 +94,7 @@ function fetchLiveData() {
 			document.getElementById("matched").innerHTML="Finished searching for "+data.matched+"/"+data.songs+" songs on Spotify"
 			clearInterval(intervalId);
 		}
-		else if (!data.loading){
+		else if (!loading){
 			window.location.replace("/error");
 		}
 	})
