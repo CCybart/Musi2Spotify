@@ -7,16 +7,25 @@
 	<link rel="stylesheet" href="static/base.css">
 </head>
 <body>
-    <h1 class="header">Musi to Spotify playlist converter</h1>
+    <div class="header">
+		<h2><a href="/" class="hidden_a">SYSTEMBRACE</a></h2>
+		<h1>Musi to Spotify playlist converter</h1>
+		<div>
+		<h3><a href="https://systembrace.carrd.co/">Socials</a></h3>
+		<h3><a href="https://ko-fi.com/systembrace/">Support me on Ko-Fi</a></h3>
+		</div>
+	</div>
 	
 	<div class="body">
-	
 	<div class="textbox">
-		<h3>Successfully logged in!</h3>
+		<p>
+		<h3>You're successfully logged in!</h3>
+		Next, enter the link to the Musi playlist you want to convert below.<br>
+		</p>
 	</div>
 	<br>
 	<div class="textbox">
-    <h2>Input Musi playlist link:</h2>
+    <h2>Musi playlist link:</h2>
     <form action="/link" method="post">
 		<input type="text" id="input_link" name="link" value="">
 		<input type="submit" value="Convert">

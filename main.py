@@ -291,8 +291,13 @@ def homepage():
         session["token_info"] = oauth.get_access_token(request.args["code"])
         session["user_token"] = session["token_info"]["access_token"]
         session["refresh_token"] = session["token_info"]["refresh_token"]
-    if "user_token" in session and session["user_token"]!="" and "refresh_token" in session and session["refresh_token"]!="":
-        refresh_token()
+    if "user_token" in session and session["user_token"]!="" and "refresh_token" in session and session["refresh_token"]!="" and oauth.validate_token(session["token_info"]) and spotify_client(session["user_token"])!=None:
+        try:
+            refresh_token()
+        except:
+            if ".cache" in os.listdir():
+                os.remove(".cache")
+            return render_template("login_page.html")
         print("logged in")
         delete_playlist_data(connect_to_db(),session["user_token"])
         return render_template("index.html")

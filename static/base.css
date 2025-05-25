@@ -1,5 +1,17 @@
+body{
+	background: #383a50;
+}
+
 * {
 	font-family: Helvetica;
+}
+
+a:visited .hidden_a {
+	color: white;
+}
+
+a:visited:not(.hidden_a) {
+  color: blue;
 }
 
 p {
@@ -34,45 +46,69 @@ td {
 input {
 	padding: 1.5pt 3pt;
 	background:white;
+	color: black;
 }
 input[type=text] {
 	width: 200pt;
-}
-
-button {
-	padding: 1.5pt 3pt;
-	background:white
 }
 
 h1, h2, h3 {
 	margin: 8pt;
 }
 
+h1 {
+	margin-top: 0pt;
+}
+
+button {
+	padding: 1.5pt 3pt;
+	background:white;
+	h1, h2, h3 {
+		margin: 8pt;
+	}
+}
+
 .header {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	align-items: center;
+	justify-content: center;
+	color: white;
 	position: fixed;
 	top: 0;
 	left: 0;
 	width: 100%;
-	height: 8%;
+	height: 30pt;
 	margin: 0;
-	padding: 5pt;
+	padding: 6pt;
 	text-align: center;
 	color: white;
 	background: cornflowerblue;
 	border-color: white;
 	border-bottom-style: solid;
-	border-width: 1%;
+	border-width: 2pt;
+	text-wrap: nowrap;
+	* {
+		margin: auto;
+	}
 }
 
 .body {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
 	width: 90%;
+	min-height: 450px;
+	max-height: 100%;
 	margin: auto;
-	padding-top: 5%;
+	margin-top: 45pt;
 	text-align: center;
 }
 
 .note {
-	font-size: 8pt;
+	font-size: 60%;
 	color: whitesmoke;
 	margin: 4pt;
 }
@@ -103,4 +139,18 @@ h1, h2, h3 {
 	padding: 10pt;
 	margin: 10pt auto;
 	width: auto;
+}
+
+.hidden_a {
+	color: white;
+	text-decoration: none;
+}
+
+@media (max-width: 600px) {
+	input[type=text] {
+		width: 100pt;
+	}
+	.textbox {
+		max-width: 90%;
+	}
 }

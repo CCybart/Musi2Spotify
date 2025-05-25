@@ -212,7 +212,7 @@ function remove_match(){
 
 function cancel_selection(){
 	document.getElementById("selectedSection").style.display='none';
-	document.getElementById("isSelected").innerHTML = "Select a song below.";
+	document.getElementById("isSelected").innerHTML = "Select a song below by clicking on a number.";
 }
 
 var intervalId = window.setInterval(function(){
